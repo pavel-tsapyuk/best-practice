@@ -182,4 +182,3 @@ Expected: каждый критерий подтверждён конкретн�
 Run: `git push origin main`, затем сравнить `git rev-parse HEAD` с `git ls-remote origin refs/heads/main`.
 
 Expected: локальный и удалённый SHA совпадают.
-
