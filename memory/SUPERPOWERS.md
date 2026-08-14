@@ -1,5 +1,13 @@
 # Using superpowers
 
+```yaml
+scope: shared
+stability: stable
+conflict: enforce-shared
+```
+
+Этот файл раскрывает обязательное правило из `AGENTS_CORE.md`; при синхронизации активным остаётся короткая формулировка ядра.
+
 ## Статус
 
 **Обязательное правило.**
