@@ -40,6 +40,44 @@ conflict: ask
 8. Проверить результат тестами/сборкой/ручным сценарием.
 9. Сообщить непроверенные допущения и риски.
 
+### CodexMeter
+
+CodexMeter — приватный Windows-виджет для постоянного отображения остатка недельного лимита Codex и даты следующего сброса. Канонический репозиторий: [pavel-tsapyuk/CodexMeter](https://github.com/pavel-tsapyuk/CodexMeter).
+
+Совместимость и подготовка:
+
+- Windows 10 Pro 22H2 x64, build 19045.6456, физически проверена 2026-08-23.
+- Windows 11 x64 поддерживается контрактом платформы и архитектуры; физический тест ожидается на ноутбуке владельца и до него не считается пройденным.
+- Нужны .NET Framework 4.8.1, Git for Windows и установленное приложение OpenAI Codex с выполненным входом в учётную запись.
+- Репозиторий приватный: GitHub-аккаунт на каждом компьютере должен иметь доступ. Для интерактивного входа использовать Git Credential Manager; токен нельзя вставлять в команду или сохранять в файл репозитория.
+
+Первая установка: открыть PowerShell в постоянной родительской папке и выполнить:
+
+```powershell
+git clone https://github.com/pavel-tsapyuk/CodexMeter.git
+Set-Location .\CodexMeter
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\Install.ps1
+```
+
+Безопасная проверка без изменений выполняется той же командой с параметром `-WhatIf`. Установщик размещает приложение в `%LOCALAPPDATA%\CodexMeter`, настраивает автозапуск текущего пользователя и не требует UAC.
+
+Обновление: открыть PowerShell в папке, содержащей существующий клон, и выполнить:
+
+```powershell
+Set-Location .\CodexMeter
+git pull --ff-only
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\Install.ps1
+```
+
+Удаление автозапуска и остановка установленного виджета:
+
+```powershell
+Set-Location .\CodexMeter
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\Uninstall.ps1
+```
+
+Лимит читается локально через `codex app-server --stdio` и `account/rateLimits/read`, без парсинга страницы usage. Совместимый `runtime/codex.exe` копируется из локальной установки Codex и никогда не хранится в Git. Логи (`%LOCALAPPDATA%\CodexMeter\CodexMeter.log`), живые ответы, снимки, учётные данные, токены и другие секреты также остаются только локально и не добавляются в репозиторий.
+
 ## Клиентские документы
 
 Стандартный кандидат:
