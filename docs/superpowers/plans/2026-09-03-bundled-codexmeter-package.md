@@ -17,6 +17,8 @@
 - Не запускать реальную установку и не останавливать действующий виджет; допустим только `/quiet /whatif`.
 - Best Practice меняет версию с `2.2.0` на `2.2.1`; `AGENTS_CORE.md` и `SYNC.md` не меняются.
 - Все текстовые файлы — UTF-8, diff без хвостовых пробелов; EXE остаётся бинарным.
+- Проверочный контракт до перечисления дочерних элементов подтверждает, что `packages` и `packages/CodexMeter` — настоящие контейнеры без `ReparsePoint`; все release text files, включая `.gitattributes`, contract, metadata, инструкции, release records, design и этот plan, декодируются как strict UTF-8 без BOM.
+- Все GUI вызовы bootstrapper используют `Start-Process -Wait -PassThru`; обновление существующего Best Practice clone fail-closed проверяет `git pull --ff-only` и явный корень из `git rev-parse --show-toplevel`.
 
 ---
 
@@ -213,8 +215,12 @@ Create `packages/CodexMeter/INSTALL.md`:
 Открой PowerShell в корне существующего клона Best Practice:
 
 ```powershell
+$ErrorActionPreference = 'Stop'
 git pull --ff-only
-Set-Location .\packages\CodexMeter
+if ($LASTEXITCODE -ne 0) { throw "Best Practice update failed: $LASTEXITCODE" }
+$repoRoot = (& git rev-parse --show-toplevel).Trim()
+if ($LASTEXITCODE -ne 0 -or -not $repoRoot) { throw 'Best Practice repository root was not found.' }
+Set-Location -LiteralPath (Join-Path $repoRoot 'packages\CodexMeter') -ErrorAction Stop
 $expected = (Get-Content -Raw .\CodexMeter-Setup.exe.sha256).Trim()
 $actual = (Get-FileHash -Algorithm SHA256 .\CodexMeter-Setup.exe).Hash
 if ($actual -cne $expected) { throw "SHA-256 mismatch: $actual" }
@@ -223,14 +229,18 @@ if ($actual -cne $expected) { throw "SHA-256 mismatch: $actual" }
 ## Проверка без установки
 
 ```powershell
-& .\CodexMeter-Setup.exe /quiet /whatif
-if ($LASTEXITCODE -ne 0) { throw "CodexMeter preflight failed: $LASTEXITCODE" }
+$process = Start-Process -FilePath .\CodexMeter-Setup.exe `
+    -ArgumentList @('/quiet', '/whatif') -Wait -PassThru
+if ($process.ExitCode -ne 0) {
+    throw "CodexMeter preflight failed: $($process.ExitCode)"
+}
 ```
 
 ## Установка или обновление
 
 ```powershell
-& .\CodexMeter-Setup.exe
+$process = Start-Process -FilePath .\CodexMeter-Setup.exe -Wait -PassThru
+if ($process.ExitCode -ne 0) { throw "CodexMeter installation failed: $($process.ExitCode)" }
 ```
 
 Установщик работает без UAC и применяет тот же безопасный сценарий как для первой установки, так и для обновления. Поскольку цифровой подписи пока нет, Windows SmartScreen может показать `Unknown publisher`; сначала сверь SHA-256, затем используй стандартное действие **More info → Run anyway**.
@@ -319,15 +329,30 @@ Best Practice включает проверенный CodexMeter 1.1.0 в [`pack
 Первая установка или обновление:
 
 ```powershell
+$ErrorActionPreference = 'Stop'
 git pull --ff-only
-Set-Location .\packages\CodexMeter
+if ($LASTEXITCODE -ne 0) { throw "Best Practice update failed: $LASTEXITCODE" }
+$repoRoot = (& git rev-parse --show-toplevel).Trim()
+if ($LASTEXITCODE -ne 0 -or -not $repoRoot) { throw 'Best Practice repository root was not found.' }
+Set-Location -LiteralPath (Join-Path $repoRoot 'packages\CodexMeter') -ErrorAction Stop
 $expected = (Get-Content -Raw .\CodexMeter-Setup.exe.sha256).Trim()
 $actual = (Get-FileHash -Algorithm SHA256 .\CodexMeter-Setup.exe).Hash
 if ($actual -cne $expected) { throw "SHA-256 mismatch: $actual" }
-& .\CodexMeter-Setup.exe
+$process = Start-Process -FilePath .\CodexMeter-Setup.exe -Wait -PassThru
+if ($process.ExitCode -ne 0) { throw "CodexMeter installation failed: $($process.ExitCode)" }
 ```
 
-Безопасная проверка без установки: `& .\CodexMeter-Setup.exe /quiet /whatif`. Полная инструкция, включая предупреждение SmartScreen: [`packages/CodexMeter/INSTALL.md`](../packages/CodexMeter/INSTALL.md).
+Безопасная проверка без установки:
+
+```powershell
+$process = Start-Process -FilePath .\CodexMeter-Setup.exe `
+    -ArgumentList @('/quiet', '/whatif') -Wait -PassThru
+if ($process.ExitCode -ne 0) {
+    throw "CodexMeter preflight failed: $($process.ExitCode)"
+}
+```
+
+Полная инструкция, включая предупреждение SmartScreen: [`packages/CodexMeter/INSTALL.md`](../packages/CodexMeter/INSTALL.md).
 
 Удаление установленного виджета:
 
@@ -416,7 +441,7 @@ Run:
 ```powershell
 $appRoot = Join-Path $env:LOCALAPPDATA 'CodexMeter'
 $runKey = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'
-$beforeProcesses = @(Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -eq (Join-Path $appRoot 'CodexMeter.exe') } | Select-Object -ExpandProperty ProcessId)
+$beforeProcesses = @(Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -eq (Join-Path $appRoot 'CodexMeter.exe') } | Select-Object -ExpandProperty ProcessId | Sort-Object)
 $beforeRun = (Get-Item -LiteralPath $runKey).GetValue('CodexMeter', $null, [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames)
 $beforeExeHash = if (Test-Path -LiteralPath (Join-Path $appRoot 'CodexMeter.exe')) { (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $appRoot 'CodexMeter.exe')).Hash } else { $null }
 ```
@@ -443,8 +468,9 @@ Run:
 
 ```powershell
 $cloneExe = Join-Path $clone 'packages\CodexMeter\CodexMeter-Setup.exe'
-& $cloneExe /quiet /whatif
-if ($LASTEXITCODE -ne 0) { throw "Fresh-clone CodexMeter preflight failed: $LASTEXITCODE" }
+$process = Start-Process -FilePath $cloneExe `
+    -ArgumentList @('/quiet', '/whatif') -Wait -PassThru
+if ($process.ExitCode -ne 0) { throw "Fresh-clone CodexMeter preflight failed: $($process.ExitCode)" }
 ```
 
 Expected: exit 0 and a successful prerequisites/payload report; no installation is performed.
@@ -454,7 +480,7 @@ Expected: exit 0 and a successful prerequisites/payload report; no installation 
 Run:
 
 ```powershell
-$afterProcesses = @(Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -eq (Join-Path $appRoot 'CodexMeter.exe') } | Select-Object -ExpandProperty ProcessId)
+$afterProcesses = @(Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -eq (Join-Path $appRoot 'CodexMeter.exe') } | Select-Object -ExpandProperty ProcessId | Sort-Object)
 $afterRun = (Get-Item -LiteralPath $runKey).GetValue('CodexMeter', $null, [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames)
 $afterExeHash = if (Test-Path -LiteralPath (Join-Path $appRoot 'CodexMeter.exe')) { (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $appRoot 'CodexMeter.exe')).Hash } else { $null }
 
@@ -493,5 +519,5 @@ Expected: a clean branch summary (the exact ahead count depends on the already c
 - SHA-256 equals `32DBDDA950F003FACF9F3A6F909E419391AE91A76956A5A3C12101DCDDFC7C17` in the source repo, Best Practice working tree and fresh clone.
 - Best Practice reports version 2.2.1 and points users to its own bundled package.
 - Windows PowerShell 5.1 contract passes from the main repository and fresh clone.
-- `/quiet /whatif` returns success without changing the installed executable, exact process set or HKCU autostart value.
+- `/quiet /whatif` waits for the GUI bootstrapper to exit, then returns success without changing the installed executable, exact process set or HKCU autostart value.
 - Git status is clean; diff check and `git fsck --strict --no-dangling` pass.

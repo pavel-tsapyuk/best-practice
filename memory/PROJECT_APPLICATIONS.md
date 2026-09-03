@@ -55,15 +55,30 @@ Best Practice включает проверенный CodexMeter 1.1.0 в [`pack
 Первая установка или обновление:
 
 ```powershell
+$ErrorActionPreference = 'Stop'
 git pull --ff-only
-Set-Location .\packages\CodexMeter
+if ($LASTEXITCODE -ne 0) { throw "Best Practice update failed: $LASTEXITCODE" }
+$repoRoot = (& git rev-parse --show-toplevel).Trim()
+if ($LASTEXITCODE -ne 0 -or -not $repoRoot) { throw 'Best Practice repository root was not found.' }
+Set-Location -LiteralPath (Join-Path $repoRoot 'packages\CodexMeter') -ErrorAction Stop
 $expected = (Get-Content -Raw .\CodexMeter-Setup.exe.sha256).Trim()
 $actual = (Get-FileHash -Algorithm SHA256 .\CodexMeter-Setup.exe).Hash
 if ($actual -cne $expected) { throw "SHA-256 mismatch: $actual" }
-& .\CodexMeter-Setup.exe
+$process = Start-Process -FilePath .\CodexMeter-Setup.exe -Wait -PassThru
+if ($process.ExitCode -ne 0) { throw "CodexMeter installation failed: $($process.ExitCode)" }
 ```
 
-Безопасная проверка без установки: `& .\CodexMeter-Setup.exe /quiet /whatif`. Полная инструкция, включая предупреждение SmartScreen: [`packages/CodexMeter/INSTALL.md`](../packages/CodexMeter/INSTALL.md).
+Безопасная проверка без установки:
+
+```powershell
+$process = Start-Process -FilePath .\CodexMeter-Setup.exe `
+    -ArgumentList @('/quiet', '/whatif') -Wait -PassThru
+if ($process.ExitCode -ne 0) {
+    throw "CodexMeter preflight failed: $($process.ExitCode)"
+}
+```
+
+Полная инструкция, включая предупреждение SmartScreen: [`packages/CodexMeter/INSTALL.md`](../packages/CodexMeter/INSTALL.md).
 
 Удаление установленного виджета:
 
