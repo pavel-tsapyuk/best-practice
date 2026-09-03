@@ -29,9 +29,28 @@ foreach ($name in $requiredNames) {
     $tracked = @(& git -C $RepoRoot ls-files --error-unmatch -- "packages/CodexMeter/$name" 2>$null)
     Assert-True ($LASTEXITCODE -eq 0 -and $tracked.Count -eq 1) "Package file is not tracked exactly once: $name"
 }
-$actualNames = @(Get-ChildItem -LiteralPath $packageRoot -File | Select-Object -ExpandProperty Name | Sort-Object)
+$packageEntries = @(Get-ChildItem -LiteralPath $packageRoot -Force)
+foreach ($entry in $packageEntries) {
+    Assert-True (-not $entry.PSIsContainer) "CodexMeter package must not contain directories: $($entry.Name)"
+    Assert-True (($entry.Attributes -band [IO.FileAttributes]::ReparsePoint) -eq 0) "CodexMeter package must not contain reparse points: $($entry.Name)"
+}
+$actualNames = @($packageEntries | Select-Object -ExpandProperty Name | Sort-Object)
 $expectedNames = @($requiredNames | Sort-Object)
 Assert-True (($actualNames -join "`n") -ceq ($expectedNames -join "`n")) 'CodexMeter package must contain exactly the four approved files.'
+
+$utf8Strict = [Text.UTF8Encoding]::new($false, $true)
+foreach ($metadataName in @('CodexMeter-Setup.exe.sha256', 'VERSION', 'INSTALL.md')) {
+    $metadataPath = Join-Path $packageRoot $metadataName
+    $metadataBytes = [IO.File]::ReadAllBytes($metadataPath)
+    $hasUtf8Bom = $metadataBytes.Length -ge 3 -and
+        $metadataBytes[0] -eq 0xEF -and $metadataBytes[1] -eq 0xBB -and $metadataBytes[2] -eq 0xBF
+    Assert-True (-not $hasUtf8Bom) "Package metadata must not contain a UTF-8 BOM: $metadataName"
+    try {
+        $null = $utf8Strict.GetString($metadataBytes)
+    } catch {
+        throw "Package metadata is not valid strict UTF-8: $metadataName"
+    }
+}
 
 $versionText = (Get-Content -Raw -LiteralPath (Join-Path $packageRoot 'VERSION')).Trim()
 $expectedVersion = @'
