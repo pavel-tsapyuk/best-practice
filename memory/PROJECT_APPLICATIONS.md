@@ -42,41 +42,38 @@ conflict: ask
 
 ### CodexMeter
 
-CodexMeter — приватный Windows-виджет для постоянного отображения остатка недельного лимита Codex и даты следующего сброса. Канонический репозиторий: [pavel-tsapyuk/CodexMeter](https://github.com/pavel-tsapyuk/CodexMeter).
+CodexMeter — приватный Windows-виджет для постоянного отображения остатка недельного лимита Codex и даты следующего сброса.
 
 Совместимость и подготовка:
 
 - Windows 10 Pro 22H2 x64, build 19045.6456, физически проверена 2026-08-23.
-- Windows 11 x64 поддерживается контрактом платформы и архитектуры; физический тест ожидается на ноутбуке владельца и до него не считается пройденным.
-- Нужны .NET Framework 4.8.1, Git for Windows и установленное приложение OpenAI Codex с выполненным входом в учётную запись.
-- Репозиторий приватный: GitHub-аккаунт на каждом компьютере должен иметь доступ. Для интерактивного входа использовать Git Credential Manager; токен нельзя вставлять в команду или сохранять в файл репозитория.
+- Windows 11 x64 поддерживается контрактом платформы и архитектуры.
+- Нужны .NET Framework 4.8.1 и установленное приложение OpenAI Codex с выполненным входом в учётную запись.
 
-Первая установка: открыть PowerShell в постоянной родительской папке и выполнить:
+Best Practice включает проверенный CodexMeter 1.1.0 в [`packages/CodexMeter`](../packages/CodexMeter/INSTALL.md). На другом компьютере нужен доступ только к приватному репозиторию Best Practice; отдельный клон CodexMeter не требуется.
 
-```powershell
-git clone https://github.com/pavel-tsapyuk/CodexMeter.git
-Set-Location .\CodexMeter
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\Install.ps1
-```
-
-Безопасная проверка без изменений выполняется той же командой с параметром `-WhatIf`. Установщик размещает приложение в `%LOCALAPPDATA%\CodexMeter`, настраивает автозапуск текущего пользователя и не требует UAC.
-
-Обновление: открыть PowerShell в папке, содержащей существующий клон, и выполнить:
+Первая установка или обновление:
 
 ```powershell
-Set-Location .\CodexMeter
 git pull --ff-only
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\Install.ps1
+Set-Location .\packages\CodexMeter
+$expected = (Get-Content -Raw .\CodexMeter-Setup.exe.sha256).Trim()
+$actual = (Get-FileHash -Algorithm SHA256 .\CodexMeter-Setup.exe).Hash
+if ($actual -cne $expected) { throw "SHA-256 mismatch: $actual" }
+& .\CodexMeter-Setup.exe
 ```
 
-Удаление автозапуска и остановка установленного виджета:
+Безопасная проверка без установки: `& .\CodexMeter-Setup.exe /quiet /whatif`. Полная инструкция, включая предупреждение SmartScreen: [`packages/CodexMeter/INSTALL.md`](../packages/CodexMeter/INSTALL.md).
+
+Удаление установленного виджета:
 
 ```powershell
-Set-Location .\CodexMeter
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\Uninstall.ps1
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$env:LOCALAPPDATA\CodexMeter\Uninstall-CodexMeter.ps1"
 ```
 
-Лимит читается локально через `codex app-server --stdio` и `account/rateLimits/read`, без парсинга страницы usage. Совместимый `runtime/codex.exe` копируется из локальной установки Codex и никогда не хранится в Git. Логи (`%LOCALAPPDATA%\CodexMeter\CodexMeter.log`), живые ответы, снимки, учётные данные, токены и другие секреты также остаются только локально и не добавляются в репозиторий.
+Bootstrapper не содержит учётную запись владельца, токены, логи или `codex.exe`. На каждом компьютере он находит локальную официальную установку Codex и использует учётную запись вошедшего пользователя.
+
+Лимит читается локально через `codex app-server --stdio` и `account/rateLimits/read`, без парсинга страницы usage. Логи (`%LOCALAPPDATA%\CodexMeter\CodexMeter.log`), живые ответы, снимки, учётные данные, токены и другие секреты остаются только локально и не добавляются в Best Practice.
 
 ## Клиентские документы
 
