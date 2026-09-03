@@ -58,18 +58,48 @@ Create `tests/CodexMeterPackage.Tests.ps1`:
 ```powershell
 [CmdletBinding()]
 param(
-    [string]$RepoRoot = (Split-Path -Parent $PSScriptRoot)
+    [string]$RepoRoot
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+
+if ([string]::IsNullOrWhiteSpace($RepoRoot)) {
+    $RepoRoot = Split-Path -Parent $PSScriptRoot
+}
 
 function Assert-True {
     param([bool]$Condition, [string]$Message)
     if (-not $Condition) { throw $Message }
 }
 
+function Assert-RealContainer {
+    param([string]$Path, [string]$Description)
+
+    $item = Get-Item -LiteralPath $Path -Force
+    Assert-True $item.PSIsContainer "$Description must be a container: $Path"
+    Assert-True (($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -eq 0) "$Description must not be a reparse point: $Path"
+}
+
+function Assert-StrictUtf8NoBom {
+    param([string]$Path, [string]$Description)
+
+    $textBytes = [IO.File]::ReadAllBytes($Path)
+    $hasUtf8Bom = $textBytes.Length -ge 3 -and
+        $textBytes[0] -eq 0xEF -and $textBytes[1] -eq 0xBB -and $textBytes[2] -eq 0xBF
+    Assert-True (-not $hasUtf8Bom) "$Description must not contain a UTF-8 BOM: $Path"
+    try {
+        $null = $utf8Strict.GetString($textBytes)
+    } catch {
+        throw "$Description is not valid strict UTF-8: $Path"
+    }
+}
+
+$utf8Strict = [Text.UTF8Encoding]::new($false, $true)
+$packagesRoot = Join-Path $RepoRoot 'packages'
 $packageRoot = Join-Path $RepoRoot 'packages\CodexMeter'
+Assert-RealContainer -Path $packagesRoot -Description 'Packages root'
+Assert-RealContainer -Path $packageRoot -Description 'CodexMeter package root'
 $requiredNames = @(
     'CodexMeter-Setup.exe',
     'CodexMeter-Setup.exe.sha256',
@@ -80,12 +110,22 @@ $requiredNames = @(
 foreach ($name in $requiredNames) {
     $path = Join-Path $packageRoot $name
     Assert-True (Test-Path -LiteralPath $path -PathType Leaf) "Missing required package file: $name"
-    $tracked = & git -C $RepoRoot ls-files --error-unmatch -- "packages/CodexMeter/$name" 2>$null
+    $tracked = @(& git -C $RepoRoot ls-files --error-unmatch -- "packages/CodexMeter/$name" 2>$null)
     Assert-True ($LASTEXITCODE -eq 0 -and $tracked.Count -eq 1) "Package file is not tracked exactly once: $name"
 }
-$actualNames = @(Get-ChildItem -LiteralPath $packageRoot -File | Select-Object -ExpandProperty Name | Sort-Object)
+$packageEntries = @(Get-ChildItem -LiteralPath $packageRoot -Force)
+foreach ($entry in $packageEntries) {
+    Assert-True (-not $entry.PSIsContainer) "CodexMeter package must not contain directories: $($entry.Name)"
+    Assert-True (($entry.Attributes -band [IO.FileAttributes]::ReparsePoint) -eq 0) "CodexMeter package must not contain reparse points: $($entry.Name)"
+}
+$actualNames = @($packageEntries | Select-Object -ExpandProperty Name | Sort-Object)
 $expectedNames = @($requiredNames | Sort-Object)
 Assert-True (($actualNames -join "`n") -ceq ($expectedNames -join "`n")) 'CodexMeter package must contain exactly the four approved files.'
+
+foreach ($metadataName in @('CodexMeter-Setup.exe.sha256', 'VERSION', 'INSTALL.md')) {
+    $metadataPath = Join-Path $packageRoot $metadataName
+    Assert-StrictUtf8NoBom -Path $metadataPath -Description "Package metadata $metadataName"
+}
 
 $versionText = (Get-Content -Raw -LiteralPath (Join-Path $packageRoot 'VERSION')).Trim()
 $expectedVersion = @'
@@ -118,13 +158,72 @@ $subsystem = [BitConverter]::ToUInt16($bytes, $optionalHeader + 68)
 Assert-True ($subsystem -eq 2) 'CodexMeter bootstrapper must use the Windows GUI subsystem.'
 
 $install = Get-Content -Raw -LiteralPath (Join-Path $packageRoot 'INSTALL.md')
-foreach ($required in @('git pull --ff-only', 'Get-FileHash', 'CodexMeter-Setup.exe.sha256', 'CodexMeter-Setup.exe', '/quiet /whatif', 'SmartScreen', '1.1.1')) {
+foreach ($required in @('git pull --ff-only', 'Get-FileHash', 'CodexMeter-Setup.exe.sha256', 'CodexMeter-Setup.exe', "'/quiet', '/whatif'", 'SmartScreen', '1.1.1')) {
     Assert-True ($install.Contains($required)) "INSTALL.md is missing required content: $required"
 }
+
+$requiredUpdateBlock = @'
+$ErrorActionPreference = 'Stop'
+git pull --ff-only
+if ($LASTEXITCODE -ne 0) { throw "Best Practice update failed: $LASTEXITCODE" }
+$repoRoot = (& git rev-parse --show-toplevel).Trim()
+if ($LASTEXITCODE -ne 0 -or -not $repoRoot) { throw 'Best Practice repository root was not found.' }
+Set-Location -LiteralPath (Join-Path $repoRoot 'packages\CodexMeter') -ErrorAction Stop
+'@.Trim()
+$requiredPreflightBlock = @'
+$process = Start-Process -FilePath .\CodexMeter-Setup.exe `
+    -ArgumentList @('/quiet', '/whatif') -Wait -PassThru
+if ($process.ExitCode -ne 0) {
+    throw "CodexMeter preflight failed: $($process.ExitCode)"
+}
+'@.Trim()
+$requiredInstallBlock = @'
+$process = Start-Process -FilePath .\CodexMeter-Setup.exe -Wait -PassThru
+if ($process.ExitCode -ne 0) { throw "CodexMeter installation failed: $($process.ExitCode)" }
+'@.Trim()
 
 $text = $versionText + "`n" + $expectedHash + "`n" + $install
 foreach ($pattern in @('(?i)C:\\Users\\[^\\\s]+', '(?i)ghp_[A-Za-z0-9]{20,}', '(?i)sk-[A-Za-z0-9]{20,}', '(?i)Bearer\s+[A-Za-z0-9._-]{20,}')) {
     Assert-True (-not [regex]::IsMatch($text, $pattern)) "Package metadata contains a forbidden machine path or credential pattern: $pattern"
+}
+
+$readme = Get-Content -Raw -LiteralPath (Join-Path $RepoRoot 'README.md')
+$applications = Get-Content -Raw -LiteralPath (Join-Path $RepoRoot 'memory\PROJECT_APPLICATIONS.md')
+$implementationPlan = Get-Content -Raw -LiteralPath (Join-Path $RepoRoot 'docs\superpowers\plans\2026-09-03-bundled-codexmeter-package.md')
+$bestPracticeVersion = Get-Content -Raw -LiteralPath (Join-Path $RepoRoot 'VERSION')
+$changelog = Get-Content -Raw -LiteralPath (Join-Path $RepoRoot 'CHANGELOG.md')
+
+Assert-True ($readme.Contains('packages/CodexMeter/INSTALL.md')) 'README does not link to the bundled CodexMeter package.'
+Assert-True ($applications.Contains('packages/CodexMeter')) 'PROJECT_APPLICATIONS does not use the bundled CodexMeter package.'
+Assert-True ($applications.Contains('CodexMeter 1.1.1')) 'PROJECT_APPLICATIONS does not identify the bundled CodexMeter version.'
+Assert-True ($bestPracticeVersion.Contains('Version: 2.2.1')) 'Best Practice VERSION was not raised to 2.2.1.'
+Assert-True ($bestPracticeVersion.Contains('Date: 2026-09-03')) 'Best Practice VERSION has the wrong release date.'
+Assert-True ($changelog.Contains('## 2.2.1 — 2026-09-03')) 'CHANGELOG is missing the 2.2.1 release.'
+
+foreach ($document in @(
+    @{ Name = 'INSTALL.md'; Text = $install },
+    @{ Name = 'PROJECT_APPLICATIONS.md'; Text = $applications },
+    @{ Name = 'bundled CodexMeter implementation plan'; Text = $implementationPlan }
+)) {
+    Assert-True ($document.Text.Contains($requiredUpdateBlock)) "$($document.Name) does not contain the required fail-closed repository update block."
+    Assert-True ($document.Text.Contains($requiredPreflightBlock)) "$($document.Name) does not contain the required synchronous preflight block."
+    Assert-True ($document.Text.Contains($requiredInstallBlock)) "$($document.Name) does not contain the required synchronous installation block."
+}
+
+foreach ($releaseTextPath in @(
+    '.gitattributes',
+    'tests\CodexMeterPackage.Tests.ps1',
+    'packages\CodexMeter\CodexMeter-Setup.exe.sha256',
+    'packages\CodexMeter\VERSION',
+    'packages\CodexMeter\INSTALL.md',
+    'README.md',
+    'CHANGELOG.md',
+    'VERSION',
+    'memory\PROJECT_APPLICATIONS.md',
+    'docs\superpowers\specs\2026-09-02-bundled-codexmeter-package-design.md',
+    'docs\superpowers\plans\2026-09-03-bundled-codexmeter-package.md'
+)) {
+    Assert-StrictUtf8NoBom -Path (Join-Path $RepoRoot $releaseTextPath) -Description 'Release text'
 }
 
 Write-Output 'PASS CodexMeter package contract'
@@ -409,8 +508,19 @@ Run:
 git add -- README.md CHANGELOG.md VERSION memory/PROJECT_APPLICATIONS.md tests/CodexMeterPackage.Tests.ps1
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tests\CodexMeterPackage.Tests.ps1
 git diff --cached --check
-rg -n "CodexMeter 1\.1\.0|packages/CodexMeter|2\.2\.1|2026-09-03" README.md CHANGELOG.md VERSION memory/PROJECT_APPLICATIONS.md packages/CodexMeter tests/CodexMeterPackage.Tests.ps1
+rg -n "CodexMeter 1\.1\.1|packages/CodexMeter|2\.2\.1|2026-09-03" README.md CHANGELOG.md VERSION memory/PROJECT_APPLICATIONS.md packages/CodexMeter tests/CodexMeterPackage.Tests.ps1
 rg -n "git clone https://github\.com/pavel-tsapyuk/CodexMeter" README.md memory/PROJECT_APPLICATIONS.md packages/CodexMeter
+if ($LASTEXITCODE -eq 0) { throw 'Obsolete separate-clone command is still documented.' }
+if ($LASTEXITCODE -ne 1) { throw "Separate-clone stale scan failed: $LASTEXITCODE" }
+$stalePattern = @(
+    '1\.1\.' + '0',
+    '32DBDDA950F003FACF9F3A6F909E41939' + '1AE91A76956A5A3C12101DCDDFC7C17',
+    'c1066dd3ce2bb3847e4637b80327055ac' + '5638601',
+    'v1\.' + '1\.0'
+) -join '|'
+rg -n -i $stalePattern README.md CHANGELOG.md VERSION memory/PROJECT_APPLICATIONS.md packages/CodexMeter tests/CodexMeterPackage.Tests.ps1 docs/superpowers/specs/2026-09-02-bundled-codexmeter-package-design.md docs/superpowers/plans/2026-09-03-bundled-codexmeter-package.md
+if ($LASTEXITCODE -eq 0) { throw 'Stale bundled CodexMeter release reference found.' }
+if ($LASTEXITCODE -ne 1) { throw "Bundled-release stale scan failed: $LASTEXITCODE" }
 ```
 
 Expected: package contract passes; diff check passes; required references are found; the obsolete separate-clone command returns no matches.
