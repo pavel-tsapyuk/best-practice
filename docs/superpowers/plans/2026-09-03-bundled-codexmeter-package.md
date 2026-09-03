@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Поместить проверенный установщик CodexMeter 1.1.0 непосредственно в приватный пакет Best Practice, чтобы другие компьютеры получали и проверяли его из одного репозитория.
+**Goal:** Поместить проверенный установщик CodexMeter 1.1.1 непосредственно в приватный пакет Best Practice, чтобы другие компьютеры получали и проверяли его из одного репозитория.
 
 **Architecture:** Каталог `packages/CodexMeter` содержит ровно одну актуальную сборку, её версию, SHA-256 и самодостаточную инструкцию. Отдельный PowerShell-контракт проверяет происхождение, целостность, Windows GUI subsystem и согласованность документации; финальный тест повторяет получение из чистого локального клона и безопасный `/quiet /whatif`.
 
@@ -10,8 +10,8 @@
 
 ## Global Constraints
 
-- Источник payload: приватный репозиторий CodexMeter, тег `v1.1.0`, commit `c1066dd3ce2bb3847e4637b80327055ac5638601`.
-- Ожидаемый SHA-256: `32DBDDA950F003FACF9F3A6F909E419391AE91A76956A5A3C12101DCDDFC7C17`.
+- Источник payload: приватный репозиторий CodexMeter, тег `v1.1.1`, commit `804d30d8f77a5f9addd2db3c2156b0c832e2a585`.
+- Ожидаемый SHA-256: `2AE0BF6815ABC50E100EA7852E3556F6A96AAB105DEE971FC557D6F1C707064E`.
 - В Best Practice хранится только одна актуальная версия установщика; предыдущие доступны через историю Git.
 - Не копировать `codex.exe`, учётные данные, токены, логи, app-server responses, реестр или машинные пути.
 - Не запускать реальную установку и не останавливать действующий виджет; допустим только `/quiet /whatif`.
@@ -48,7 +48,7 @@
 - Create: `packages/CodexMeter/INSTALL.md`
 
 **Interfaces:**
-- Consumes: `CodexMeter/release/CodexMeter-Setup.exe` from exact source commit `c1066dd3ce2bb3847e4637b80327055ac5638601`.
+- Consumes: `CodexMeter/release/CodexMeter-Setup.exe` from exact source commit `804d30d8f77a5f9addd2db3c2156b0c832e2a585`.
 - Produces: package directory with a stable four-file contract; `tests/CodexMeterPackage.Tests.ps1 -RepoRoot <path>` exits 0 only for a coherent package.
 
 - [ ] **Step 1: Write the failing package contract**
@@ -89,16 +89,16 @@ Assert-True (($actualNames -join "`n") -ceq ($expectedNames -join "`n")) 'CodexM
 
 $versionText = (Get-Content -Raw -LiteralPath (Join-Path $packageRoot 'VERSION')).Trim()
 $expectedVersion = @'
-CodexMeter-Version: 1.1.0
-Source-Tag: v1.1.0
-Source-Commit: c1066dd3ce2bb3847e4637b80327055ac5638601
+CodexMeter-Version: 1.1.1
+Source-Tag: v1.1.1
+Source-Commit: 804d30d8f77a5f9addd2db3c2156b0c832e2a585
 '@.Trim()
 Assert-True ($versionText -ceq $expectedVersion) 'Package VERSION does not identify the approved CodexMeter release.'
 
 $hashPath = Join-Path $packageRoot 'CodexMeter-Setup.exe.sha256'
 $expectedHash = (Get-Content -Raw -LiteralPath $hashPath).Trim()
 Assert-True ($expectedHash -cmatch '^[0-9A-F]{64}$') 'SHA-256 file must contain one uppercase 64-hex digest.'
-Assert-True ($expectedHash -ceq '32DBDDA950F003FACF9F3A6F909E419391AE91A76956A5A3C12101DCDDFC7C17') 'Package digest is not the approved v1.1.0 digest.'
+Assert-True ($expectedHash -ceq '2AE0BF6815ABC50E100EA7852E3556F6A96AAB105DEE971FC557D6F1C707064E') 'Package digest is not the approved v1.1.1 digest.'
 
 $exePath = Join-Path $packageRoot 'CodexMeter-Setup.exe'
 $actualHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $exePath).Hash
@@ -118,7 +118,7 @@ $subsystem = [BitConverter]::ToUInt16($bytes, $optionalHeader + 68)
 Assert-True ($subsystem -eq 2) 'CodexMeter bootstrapper must use the Windows GUI subsystem.'
 
 $install = Get-Content -Raw -LiteralPath (Join-Path $packageRoot 'INSTALL.md')
-foreach ($required in @('git pull --ff-only', 'Get-FileHash', 'CodexMeter-Setup.exe.sha256', 'CodexMeter-Setup.exe', '/quiet /whatif', 'SmartScreen', '1.1.0')) {
+foreach ($required in @('git pull --ff-only', 'Get-FileHash', 'CodexMeter-Setup.exe.sha256', 'CodexMeter-Setup.exe', '/quiet /whatif', 'SmartScreen', '1.1.1')) {
     Assert-True ($install.Contains($required)) "INSTALL.md is missing required content: $required"
 }
 
@@ -157,19 +157,19 @@ packages/CodexMeter/CodexMeter-Setup.exe binary
 Run from the Best Practice root. Use an isolated clone so the source is determined by the exact Git object rather than by a machine-specific working path:
 
 ```powershell
-$sourceCommit = 'c1066dd3ce2bb3847e4637b80327055ac5638601'
+$sourceCommit = '804d30d8f77a5f9addd2db3c2156b0c832e2a585'
 $sourceRoot = Join-Path $env:TEMP ('codexmeter-source-' + [guid]::NewGuid().ToString('N'))
 try {
     git clone --quiet --no-checkout https://github.com/pavel-tsapyuk/CodexMeter.git $sourceRoot
     if ($LASTEXITCODE -ne 0) { throw 'CodexMeter source clone failed.' }
-    $actualCommit = (& git -C $sourceRoot rev-parse 'v1.1.0^{}').Trim()
+    $actualCommit = (& git -C $sourceRoot rev-parse 'v1.1.1^{}').Trim()
     if ($actualCommit -cne $sourceCommit) { throw "Unexpected CodexMeter source commit: $actualCommit" }
     git -C $sourceRoot checkout --quiet --detach $sourceCommit
     if ($LASTEXITCODE -ne 0) { throw 'CodexMeter source checkout failed.' }
 
     $sourceExe = Join-Path $sourceRoot 'release\CodexMeter-Setup.exe'
     $sourceHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $sourceExe).Hash
-    if ($sourceHash -cne '32DBDDA950F003FACF9F3A6F909E419391AE91A76956A5A3C12101DCDDFC7C17') {
+    if ($sourceHash -cne '2AE0BF6815ABC50E100EA7852E3556F6A96AAB105DEE971FC557D6F1C707064E') {
         throw "Unexpected CodexMeter source hash: $sourceHash"
     }
 
@@ -192,21 +192,21 @@ try {
 Create `packages/CodexMeter/CodexMeter-Setup.exe.sha256`:
 
 ```text
-32DBDDA950F003FACF9F3A6F909E419391AE91A76956A5A3C12101DCDDFC7C17
+2AE0BF6815ABC50E100EA7852E3556F6A96AAB105DEE971FC557D6F1C707064E
 ```
 
 Create `packages/CodexMeter/VERSION`:
 
 ```text
-CodexMeter-Version: 1.1.0
-Source-Tag: v1.1.0
-Source-Commit: c1066dd3ce2bb3847e4637b80327055ac5638601
+CodexMeter-Version: 1.1.1
+Source-Tag: v1.1.1
+Source-Commit: 804d30d8f77a5f9addd2db3c2156b0c832e2a585
 ```
 
 Create `packages/CodexMeter/INSTALL.md`:
 
 ````markdown
-# CodexMeter 1.1.0
+# CodexMeter 1.1.1
 
 Этот каталог содержит актуальный неподписанный установщик CodexMeter для компьютеров владельца. Он не содержит чужую учётную запись, токены, логи или `codex.exe`; приложение использует локальную установку Codex и вошедшего на этом компьютере пользователя.
 
@@ -261,7 +261,7 @@ Expected: `PASS CodexMeter package contract`; `git diff --cached --check` exits 
 - [ ] **Step 7: Commit the independently valid package**
 
 ```powershell
-git commit -m "feat: bundle CodexMeter 1.1.0 package"
+git commit -m "feat: bundle CodexMeter 1.1.1 package"
 ```
 
 Expected: one commit containing only `.gitattributes`, the package and its contract.
@@ -293,7 +293,7 @@ $changelog = Get-Content -Raw -LiteralPath (Join-Path $RepoRoot 'CHANGELOG.md')
 
 Assert-True ($readme.Contains('packages/CodexMeter/INSTALL.md')) 'README does not link to the bundled CodexMeter package.'
 Assert-True ($applications.Contains('packages/CodexMeter')) 'PROJECT_APPLICATIONS does not use the bundled CodexMeter package.'
-Assert-True ($applications.Contains('CodexMeter 1.1.0')) 'PROJECT_APPLICATIONS does not identify the bundled CodexMeter version.'
+Assert-True ($applications.Contains('CodexMeter 1.1.1')) 'PROJECT_APPLICATIONS does not identify the bundled CodexMeter version.'
 Assert-True ($bestPracticeVersion.Contains('Version: 2.2.1')) 'Best Practice VERSION was not raised to 2.2.1.'
 Assert-True ($bestPracticeVersion.Contains('Date: 2026-09-03')) 'Best Practice VERSION has the wrong release date.'
 Assert-True ($changelog.Contains('## 2.2.1 — 2026-09-03')) 'CHANGELOG is missing the 2.2.1 release.'
@@ -324,7 +324,7 @@ CodexMeter — приватный Windows-виджет для постоянно
 - Windows 11 x64 поддерживается контрактом платформы и архитектуры.
 - Нужны .NET Framework 4.8.1 и установленное приложение OpenAI Codex с выполненным входом в учётную запись.
 
-Best Practice включает проверенный CodexMeter 1.1.0 в [`packages/CodexMeter`](../packages/CodexMeter/INSTALL.md). На другом компьютере нужен доступ только к приватному репозиторию Best Practice; отдельный клон CodexMeter не требуется.
+Best Practice включает проверенный CodexMeter 1.1.1 в [`packages/CodexMeter`](../packages/CodexMeter/INSTALL.md). На другом компьютере нужен доступ только к приватному репозиторию Best Practice; отдельный клон CodexMeter не требуется.
 
 Первая установка или обновление:
 
@@ -380,7 +380,7 @@ Prepend to `CHANGELOG.md`:
 
 ### Что изменилось
 
-- Проверенный установщик CodexMeter 1.1.0, его версия, SHA-256 и инструкция включены непосредственно в приватный пакет Best Practice.
+- Проверенный установщик CodexMeter 1.1.1, его версия, SHA-256 и инструкция включены непосредственно в приватный пакет Best Practice.
 - Добавлен контракт, который проверяет происхождение, целостность и согласованность переносимого пакета.
 
 ### Почему
@@ -515,8 +515,8 @@ Expected: a clean branch summary (the exact ahead count depends on the already c
 
 ## Final Acceptance
 
-- `packages/CodexMeter` contains exactly the approved CodexMeter 1.1.0 installer plus its three text companions.
-- SHA-256 equals `32DBDDA950F003FACF9F3A6F909E419391AE91A76956A5A3C12101DCDDFC7C17` in the source repo, Best Practice working tree and fresh clone.
+- `packages/CodexMeter` contains exactly the approved CodexMeter 1.1.1 installer plus its three text companions.
+- SHA-256 equals `2AE0BF6815ABC50E100EA7852E3556F6A96AAB105DEE971FC557D6F1C707064E` in the source repo, Best Practice working tree and fresh clone.
 - Best Practice reports version 2.2.1 and points users to its own bundled package.
 - Windows PowerShell 5.1 contract passes from the main repository and fresh clone.
 - `/quiet /whatif` waits for the GUI bootstrapper to exit, then returns success without changing the installed executable, exact process set or HKCU autostart value.

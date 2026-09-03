@@ -50,7 +50,7 @@ CodexMeter — приватный Windows-виджет для постоянно
 - Windows 11 x64 поддерживается контрактом платформы и архитектуры.
 - Нужны .NET Framework 4.8.1 и установленное приложение OpenAI Codex с выполненным входом в учётную запись.
 
-Best Practice включает проверенный CodexMeter 1.1.0 в [`packages/CodexMeter`](../packages/CodexMeter/INSTALL.md). На другом компьютере нужен доступ только к приватному репозиторию Best Practice; отдельный клон CodexMeter не требуется.
+Best Practice включает проверенный CodexMeter 1.1.1 в [`packages/CodexMeter`](../packages/CodexMeter/INSTALL.md). На другом компьютере нужен доступ только к приватному репозиторию Best Practice; отдельный клон CodexMeter не требуется.
 
 Первая установка или обновление:
 

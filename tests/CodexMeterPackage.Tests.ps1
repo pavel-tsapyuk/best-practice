@@ -71,16 +71,16 @@ foreach ($metadataName in @('CodexMeter-Setup.exe.sha256', 'VERSION', 'INSTALL.m
 
 $versionText = (Get-Content -Raw -LiteralPath (Join-Path $packageRoot 'VERSION')).Trim()
 $expectedVersion = @'
-CodexMeter-Version: 1.1.0
-Source-Tag: v1.1.0
-Source-Commit: c1066dd3ce2bb3847e4637b80327055ac5638601
+CodexMeter-Version: 1.1.1
+Source-Tag: v1.1.1
+Source-Commit: 804d30d8f77a5f9addd2db3c2156b0c832e2a585
 '@.Trim()
 Assert-True ($versionText -ceq $expectedVersion) 'Package VERSION does not identify the approved CodexMeter release.'
 
 $hashPath = Join-Path $packageRoot 'CodexMeter-Setup.exe.sha256'
 $expectedHash = (Get-Content -Raw -LiteralPath $hashPath).Trim()
 Assert-True ($expectedHash -cmatch '^[0-9A-F]{64}$') 'SHA-256 file must contain one uppercase 64-hex digest.'
-Assert-True ($expectedHash -ceq '32DBDDA950F003FACF9F3A6F909E419391AE91A76956A5A3C12101DCDDFC7C17') 'Package digest is not the approved v1.1.0 digest.'
+Assert-True ($expectedHash -ceq '2AE0BF6815ABC50E100EA7852E3556F6A96AAB105DEE971FC557D6F1C707064E') 'Package digest is not the approved v1.1.1 digest.'
 
 $exePath = Join-Path $packageRoot 'CodexMeter-Setup.exe'
 $actualHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $exePath).Hash
@@ -100,7 +100,7 @@ $subsystem = [BitConverter]::ToUInt16($bytes, $optionalHeader + 68)
 Assert-True ($subsystem -eq 2) 'CodexMeter bootstrapper must use the Windows GUI subsystem.'
 
 $install = Get-Content -Raw -LiteralPath (Join-Path $packageRoot 'INSTALL.md')
-foreach ($required in @('git pull --ff-only', 'Get-FileHash', 'CodexMeter-Setup.exe.sha256', 'CodexMeter-Setup.exe', "'/quiet', '/whatif'", 'SmartScreen', '1.1.0')) {
+foreach ($required in @('git pull --ff-only', 'Get-FileHash', 'CodexMeter-Setup.exe.sha256', 'CodexMeter-Setup.exe', "'/quiet', '/whatif'", 'SmartScreen', '1.1.1')) {
     Assert-True ($install.Contains($required)) "INSTALL.md is missing required content: $required"
 }
 
@@ -137,7 +137,7 @@ $changelog = Get-Content -Raw -LiteralPath (Join-Path $RepoRoot 'CHANGELOG.md')
 
 Assert-True ($readme.Contains('packages/CodexMeter/INSTALL.md')) 'README does not link to the bundled CodexMeter package.'
 Assert-True ($applications.Contains('packages/CodexMeter')) 'PROJECT_APPLICATIONS does not use the bundled CodexMeter package.'
-Assert-True ($applications.Contains('CodexMeter 1.1.0')) 'PROJECT_APPLICATIONS does not identify the bundled CodexMeter version.'
+Assert-True ($applications.Contains('CodexMeter 1.1.1')) 'PROJECT_APPLICATIONS does not identify the bundled CodexMeter version.'
 Assert-True ($bestPracticeVersion.Contains('Version: 2.2.1')) 'Best Practice VERSION was not raised to 2.2.1.'
 Assert-True ($bestPracticeVersion.Contains('Date: 2026-09-03')) 'Best Practice VERSION has the wrong release date.'
 Assert-True ($changelog.Contains('## 2.2.1 — 2026-09-03')) 'CHANGELOG is missing the 2.2.1 release.'
