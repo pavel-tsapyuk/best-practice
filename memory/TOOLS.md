@@ -33,6 +33,8 @@ conflict: ask
 - **FreeToken** — экспериментальная система локального запуска MoE-моделей с распределением работы между CPU/GPU и повторным использованием состояния агента; аппаратную совместимость и заявленную скорость проверять отдельно ([paper](https://arxiv.org/abs/2608.16157)).
 - **Godogen** — открытый пример автономного цикла разработки игр с запуском, снимками экрана и визуальным исправлением; использовать прежде всего как источник паттернов проверки ([source](https://github.com/htdt/godogen)).
 - **Browser Use macOS Harness** — тонкая обвязка управления macOS и авторизованным браузером с возможностью дописывать Python-логику по ходу задачи; только для изолированного пилота с review разрешений и телеметрии ([source](https://github.com/browser-use/macos-harness)).
+- **Apache Maka** — инкубационный local-first agent workspace с append-only журналом runtime events, единым Runtime Host, eval и восстановлением; использовать прежде всего как архитектурный референс, поскольку форматы и команды ещё меняются ([source](https://github.com/apache/maka)).
+- **tgrep** — trigram-indexed поиск Microsoft для многократных запросов по очень большим репозиториям; обычным проектам достаточно `rg`, а целесообразность индекса и фонового сервера нужно подтвердить benchmark на своём monorepo ([source](https://github.com/microsoft/tgrep)).
 
 ## Автоматизация и интеграции
 
@@ -71,6 +73,7 @@ conflict: ask
 ## Аудио / видео / контент
 
 - **Whisper** — локальная транскрибация.
+- **NVIDIA Parakeet TDT** — кандидат для локальной потоковой транскрибации; аппаратную совместимость, качество русского языка и требования конкретной реализации проверять экспериментом.
 - **Meetily** — запись/транскрибация/саммари встреч.
 - **Chatterbox TTS** — TTS/voice cloning.
 - **Presenton** — генерация презентаций.
@@ -79,6 +82,22 @@ conflict: ask
 - **ViMax** — многосценовая AI-генерация видео.
 - **Open SEO** — SEO-контент + WordPress.
 - **yt-dlp** — видео/аудио/субтитры там, где использование правомерно.
+
+## UI / игры / визуальная разработка
+
+- **ui-skills** — каталог design-engineering skills; выбирать отдельные релевантные правила, а не подключать весь каталог без оценки ([source](https://ui-skills.com/)).
+- **screenshot-to-code** — стартовая реконструкция интерфейса по снимку; использовать только вместе с визуальным замкнутым циклом, проверкой доступности и ручным review ([source](https://github.com/abi/screenshot-to-code)).
+- **Unity Agent Plugin** — официальный набор Unity skills для проектной работы со сценами, физикой, графикой, аудио и тестами; не активировать вне Unity-проектов ([source](https://github.com/Unity-Technologies/unity-agent-plugin)).
+
+## Локальный inference и физические устройства
+
+- **NVIDIA Personal AI Router** — beta-маршрутизация локального inference между совместимыми компьютерами; кандидат только при наличии подходящего оборудования и измеримого сценария ([source](https://www.nvidia.com/en-us/ai-on-rtx/personal-ai-router/)).
+- **Model Hardware Standard** — research preview интерфейса управления лабораторным и промышленным оборудованием; до практического применения требуются аппаратные interlocks, аварийная остановка, строгие разрешения и независимая проверка ([source](https://www.anthropic.com/news/model-hardware-standard-research-preview)).
+
+## Обучающие материалы
+
+- **CMU 11-768 AI Agents** — открытый курс по agent harness, tools, context, skills, memory, evals, RL, sandboxing и безопасности ([source](https://www.cmu-agents.com/)).
+- **Stanford CS329Z Engineering AI Agents** — курс по архитектуре, данным, оценке, guardrails, coding agents и proactive agents ([source](https://cs329z.stanford.edu/)).
 
 ## Бизнес / внутренние системы
 

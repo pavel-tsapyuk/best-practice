@@ -138,8 +138,12 @@ $changelog = Get-Content -Raw -LiteralPath (Join-Path $RepoRoot 'CHANGELOG.md')
 Assert-True ($readme.Contains('packages/CodexMeter/INSTALL.md')) 'README does not link to the bundled CodexMeter package.'
 Assert-True ($applications.Contains('packages/CodexMeter')) 'PROJECT_APPLICATIONS does not use the bundled CodexMeter package.'
 Assert-True ($applications.Contains('CodexMeter 1.1.1')) 'PROJECT_APPLICATIONS does not identify the bundled CodexMeter version.'
-Assert-True ($bestPracticeVersion.Contains('Version: 2.2.1')) 'Best Practice VERSION was not raised to 2.2.1.'
-Assert-True ($bestPracticeVersion.Contains('Date: 2026-09-03')) 'Best Practice VERSION has the wrong release date.'
+$bestPracticeVersionMatch = [regex]::Match($bestPracticeVersion, '(?m)^Version:\s*(\d+\.\d+\.\d+)\s*$')
+$bestPracticeDateMatch = [regex]::Match($bestPracticeVersion, '(?m)^Date:\s*(\d{4}-\d{2}-\d{2})\s*$')
+Assert-True $bestPracticeVersionMatch.Success 'Best Practice VERSION has no semantic version.'
+Assert-True $bestPracticeDateMatch.Success 'Best Practice VERSION has no release date.'
+Assert-True ([version]$bestPracticeVersionMatch.Groups[1].Value -ge [version]'2.2.1') 'Best Practice VERSION predates the bundled CodexMeter release.'
+Assert-True ([datetime]$bestPracticeDateMatch.Groups[1].Value -ge [datetime]'2026-09-03') 'Best Practice VERSION date predates the bundled CodexMeter release.'
 Assert-True ($changelog.Contains('## 2.2.1 — 2026-09-03')) 'CHANGELOG is missing the 2.2.1 release.'
 
 foreach ($document in @(
