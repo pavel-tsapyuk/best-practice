@@ -89,7 +89,8 @@ max_concurrent_threads_per_session = 2
 default_subagent_model = "gpt-6-luna"
 default_subagent_reasoning_effort = "medium"
 '@.Trim()
-Assert-True ($profile.Trim() -ceq $expectedProfile) 'Usage profile differs from the approved six-key profile.'
+$normalizedProfile = $profile.Trim() -replace "`r`n", "`n"
+Assert-True ($normalizedProfile -ceq $expectedProfile) 'Usage profile differs from the approved six-key profile.'
 Assert-True (([regex]::Matches($profile, '(?m)^\s*\[[^]]+\]\s*$')).Count -eq 1) 'Usage profile must contain only one table.'
 Assert-True ($sync.Contains((ConvertFrom-Utf8Base64 'IyMg0KHQuNC90YXRgNC+0L3QuNC30LDRhtC40Y8g0L/RgNC+0YTQuNC70Y8g0LjRgdC/0L7Qu9GM0LfQvtCy0LDQvdC40Y8='))) 'SYNC is missing usage-profile integration.'
 Assert-True ($sync.Contains((ConvertFrom-Utf8Base64 '0L3QtdC30LDQstC40YHQuNC80L7QtSDQv9C+0LTRgtCy0LXRgNC20LTQtdC90LjQtQ=='))) 'AGENTS and config must have independent approvals.'
