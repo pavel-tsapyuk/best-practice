@@ -32,8 +32,8 @@ $corePath = Join-Path $RepoRoot 'AGENTS_CORE.md'
 $policyPath = Join-Path $RepoRoot 'memory\USAGE_OPTIMIZATION.md'
 Assert-True (Test-Path -LiteralPath $policyPath -PathType Leaf) 'Missing memory/USAGE_OPTIMIZATION.md.'
 
-$core = Get-Content -Raw -LiteralPath $corePath
-$policy = Get-Content -Raw -LiteralPath $policyPath
+$core = Get-Content -Raw -LiteralPath $corePath -Encoding UTF8
+$policy = Get-Content -Raw -LiteralPath $policyPath -Encoding UTF8
 
 Assert-True (([regex]::Matches($core, '<!-- BEGIN BEST-PRACTICE MANAGED CORE -->')).Count -eq 1) 'Core must have one BEGIN marker.'
 Assert-True (([regex]::Matches($core, '<!-- END BEST-PRACTICE MANAGED CORE -->')).Count -eq 1) 'Core must have one END marker.'
