@@ -97,7 +97,7 @@ function Merge-ConfigText {
 
     $newline = if ($ConfigText.Contains("`r`n")) { "`r`n" } else { "`n" }
     $lines = [Collections.Generic.List[string]]::new()
-    foreach ($line in ($ConfigText -split "`r?`n", -1)) { $lines.Add($line) }
+    foreach ($line in [regex]::Split($ConfigText, "`r?`n")) { $lines.Add($line) }
 
     $rootKeys = @('model', 'model_reasoning_effort', 'service_tier')
     foreach ($key in $rootKeys) {
