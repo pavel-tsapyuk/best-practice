@@ -28,6 +28,11 @@ function ConvertFrom-Utf8Base64 {
     return [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($Value))
 }
 
+function Test-ContainsOrdinalIgnoreCase {
+    param([string]$Text, [string]$Value)
+    return $Text.IndexOf($Value, [StringComparison]::OrdinalIgnoreCase) -ge 0
+}
+
 $corePath = Join-Path $RepoRoot 'AGENTS_CORE.md'
 $policyPath = Join-Path $RepoRoot 'memory\USAGE_OPTIMIZATION.md'
 Assert-True (Test-Path -LiteralPath $policyPath -PathType Leaf) 'Missing memory/USAGE_OPTIMIZATION.md.'
@@ -66,5 +71,30 @@ Assert-True ($policy.Contains('https://developers.openai.com/')) 'Policy must ci
 foreach ($path in @($corePath, $policyPath)) {
     Assert-StrictUtf8NoBom -Path $path -Description 'Usage policy text'
 }
+
+$profilePath = Join-Path $RepoRoot 'config\USAGE_PROFILE.toml'
+$syncPath = Join-Path $RepoRoot 'SYNC.md'
+Assert-True (Test-Path -LiteralPath $profilePath -PathType Leaf) 'Missing config/USAGE_PROFILE.toml.'
+
+$profile = Get-Content -Raw -LiteralPath $profilePath -Encoding UTF8
+$sync = Get-Content -Raw -LiteralPath $syncPath -Encoding UTF8
+$expectedProfile = @'
+model = "gpt-6-sol"
+model_reasoning_effort = "medium"
+service_tier = "default"
+
+[agents]
+max_concurrent_threads_per_session = 2
+default_subagent_model = "gpt-6-luna"
+default_subagent_reasoning_effort = "medium"
+'@.Trim()
+Assert-True ($profile.Trim() -ceq $expectedProfile) 'Usage profile differs from the approved six-key profile.'
+Assert-True (([regex]::Matches($profile, '(?m)^\s*\[[^]]+\]\s*$')).Count -eq 1) 'Usage profile must contain only one table.'
+Assert-True ($sync.Contains((ConvertFrom-Utf8Base64 'IyMg0KHQuNC90YXRgNC+0L3QuNC30LDRhtC40Y8g0L/RgNC+0YTQuNC70Y8g0LjRgdC/0L7Qu9GM0LfQvtCy0LDQvdC40Y8='))) 'SYNC is missing usage-profile integration.'
+Assert-True ($sync.Contains((ConvertFrom-Utf8Base64 '0L3QtdC30LDQstC40YHQuNC80L7QtSDQv9C+0LTRgtCy0LXRgNC20LTQtdC90LjQtQ=='))) 'AGENTS and config must have independent approvals.'
+Assert-True (Test-ContainsOrdinalIgnoreCase $sync (ConvertFrom-Utf8Base64 '0L3QtSDQt9Cw0LzQtdC90Y/RgtGMIGBjb25maWcudG9tbGAg0YbQtdC70LjQutC+0Lw=')) 'SYNC must forbid whole-file config replacement.'
+Assert-True ($sync.Contains('SHA-256')) 'SYNC must detect local changes after the diff.'
+Assert-True (Test-ContainsOrdinalIgnoreCase $sync (ConvertFrom-Utf8Base64 '0LzQvtC00LXQu9GMINC40LvQuCDQutC70Y7RhyDQvdC1INC/0L7QtNC00LXRgNC20LjQstCw0LXRgtGB0Y8=')) 'SYNC must stop on incompatible values.'
+Assert-StrictUtf8NoBom -Path $profilePath -Description 'Usage profile'
 
 Write-Output 'PASS usage optimization policy contract'
