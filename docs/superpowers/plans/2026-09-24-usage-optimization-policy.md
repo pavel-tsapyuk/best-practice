@@ -20,7 +20,7 @@
 - Local paths, notifications, MCP servers, plugins, permissions, projects, hardware instructions, and automations are preserved.
 - An unsupported Codex version, model, or config key stops config integration and requires a user decision.
 - No GitHub publication occurs before review of the implementation diff and explicit user confirmation.
-- The release version is `2.3.0` dated `2026-09-24`.
+- The release version is `2.4.0` dated `2026-09-24` because upstream already published an independent `2.3.0` release before integration.
 - All maintained text files are strict UTF-8 without BOM and contain no credentials or machine-specific user paths.
 
 ## Review Focus
@@ -421,7 +421,7 @@ git -c user.name="Pavel Tsapyuk" -c user.email="pawlick@pawlick.ru" commit -m "f
 
 **Interfaces:**
 - Consumes: completed policy and profile.
-- Produces: discoverable version `2.3.0` documentation and release contract.
+- Produces: discoverable version `2.4.0` documentation and release contract.
 
 - [ ] **Step 1: Extend the release test first**
 
@@ -433,9 +433,9 @@ $version = Get-Content -Raw -LiteralPath (Join-Path $RepoRoot 'VERSION')
 $changelog = Get-Content -Raw -LiteralPath (Join-Path $RepoRoot 'CHANGELOG.md')
 Assert-True ($readme.Contains('memory/USAGE_OPTIMIZATION.md')) 'README must link the detailed policy.'
 Assert-True ($readme.Contains('config/USAGE_PROFILE.toml')) 'README must link the usage profile.'
-Assert-True ($version.Contains('Version: 2.3.0')) 'VERSION must be 2.3.0.'
+Assert-True ($version.Contains('Version: 2.4.0')) 'VERSION must be 2.4.0.'
 Assert-True ($version.Contains('Date: 2026-09-24')) 'VERSION must use the release date.'
-Assert-True ($changelog.Contains('## 2.3.0 — 2026-09-24')) 'CHANGELOG must describe release 2.3.0.'
+Assert-True ($changelog.Contains('## 2.4.0 — 2026-09-24')) 'CHANGELOG must describe release 2.4.0.'
 foreach ($path in @(
     (Join-Path $RepoRoot 'README.md'),
     (Join-Path $RepoRoot 'CHANGELOG.md'),
@@ -466,12 +466,12 @@ Add to `## Архитектура`:
 
 Add to `## Что одинаково на всех установках` the silent preflight and minimal sufficient resource rule. Add to `## Что остаётся локальным` that unsupported models and pre-existing local overrides are preserved until the user resolves them.
 
-- [ ] **Step 4: Prepend release `2.3.0` to `CHANGELOG.md`**
+- [ ] **Step 4: Prepend release `2.4.0` to `CHANGELOG.md`**
 
 Use:
 
 ```markdown
-## 2.3.0 — 2026-09-24
+## 2.4.0 — 2026-09-24
 
 ### Что изменилось
 
@@ -500,7 +500,7 @@ Set:
 
 ```text
 Codex Best Practice
-Version: 2.3.0
+Version: 2.4.0
 Date: 2026-09-24
 Scope: managed shared memory for multiple Codex installations
 ```
@@ -518,7 +518,7 @@ Expected: both print `PASS` and exit `0`.
 
 ```powershell
 git add -- README.md CHANGELOG.md VERSION tests/UsageOptimizationPolicy.Tests.ps1
-git -c user.name="Pavel Tsapyuk" -c user.email="pawlick@pawlick.ru" commit -m "docs: release usage optimization policy 2.3.0"
+git -c user.name="Pavel Tsapyuk" -c user.email="pawlick@pawlick.ru" commit -m "docs: release usage optimization policy 2.4.0"
 ```
 
 ### Task 5: Verify the repository and present the implementation diff
@@ -642,7 +642,7 @@ Start a fresh local task and verify reported model, medium reasoning, default se
 
 - [ ] **Step 7: Update local state only after success**
 
-Set `installed_version` to `2.3.0`, `installed_commit` to the verified release commit, `synced_at` to the current UTC timestamp, and preserve `local_profile` exactly.
+Set `installed_version` to `2.4.0`, `installed_commit` to the verified release commit, `synced_at` to the current UTC timestamp, and preserve `local_profile` exactly.
 
 ### Task 7: Publish and roll out to the other two computers
 
@@ -670,7 +670,7 @@ Use this message in the `computers` room:
 
 ```text
 Обнови локальную копию https://github.com/pavel-tsapyuk/best-practice до
-версии 2.3.0 по SYNC.md. Сначала fetch и diff от installed_commit, ничего
+версии 2.4.0 по SYNC.md. Сначала fetch и diff от installed_commit, ничего
 не меняй до показа плана. Отдельно покажи diff managed-блока AGENTS.md и
 diff шести ключей USAGE_PROFILE.toml. Проверь совместимость версии Codex и
 моделей. Сохрани LOCAL OVERRIDES, MCP, plugins, permissions, paths, projects

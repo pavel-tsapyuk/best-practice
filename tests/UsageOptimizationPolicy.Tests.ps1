@@ -105,9 +105,9 @@ $version = Get-Content -Raw -LiteralPath (Join-Path $RepoRoot 'VERSION') -Encodi
 $changelog = Get-Content -Raw -LiteralPath (Join-Path $RepoRoot 'CHANGELOG.md') -Encoding UTF8
 Assert-True ($readme.Contains('memory/USAGE_OPTIMIZATION.md')) 'README must link the detailed policy.'
 Assert-True ($readme.Contains('config/USAGE_PROFILE.toml')) 'README must link the usage profile.'
-Assert-True ($version.Contains('Version: 2.3.0')) 'VERSION must be 2.3.0.'
+Assert-True ($version.Contains('Version: 2.4.0')) 'VERSION must be 2.4.0.'
 Assert-True ($version.Contains('Date: 2026-09-24')) 'VERSION must use the release date.'
-Assert-True ($changelog.Contains((ConvertFrom-Utf8Base64 'IyMgMi4zLjAg4oCUIDIwMjYtMDktMjQ='))) 'CHANGELOG must describe release 2.3.0.'
+Assert-True ($changelog.Contains((ConvertFrom-Utf8Base64 'IyMgMi40LjAg4oCUIDIwMjYtMDktMjQ='))) 'CHANGELOG must describe release 2.4.0.'
 foreach ($path in @(
     (Join-Path $RepoRoot 'README.md'),
     (Join-Path $RepoRoot 'CHANGELOG.md'),
