@@ -25,7 +25,7 @@
 
 ## Review Focus
 
-1. **Existing `[agents]` table in local config:** merge the four allowlisted keys into that table without creating a duplicate table or replacing unrelated keys; Task 6 verifies this against a temporary fixture.
+1. **Existing `[agents]` table in local config:** merge the three allowlisted `[agents]` keys into that table, alongside the three allowlisted root keys, without creating a duplicate table or replacing unrelated keys; Task 6 verifies this against a temporary fixture.
 2. **Unsupported model or config key:** compatibility check must stop before writing and report the exact unsupported value; Task 6 tests a deliberately unsupported profile.
 3. **Repeated or malformed managed markers:** AGENTS integration must stop before writing; Task 6 tests duplicate start markers.
 4. **Local config changes after diff:** integration must compare a pre-write SHA-256 and stop on mismatch; Task 6 tests a changed fixture.

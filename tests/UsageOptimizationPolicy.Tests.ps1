@@ -42,6 +42,7 @@ $policy = Get-Content -Raw -LiteralPath $policyPath -Encoding UTF8
 
 Assert-True (([regex]::Matches($core, '<!-- BEGIN BEST-PRACTICE MANAGED CORE -->')).Count -eq 1) 'Core must have one BEGIN marker.'
 Assert-True (([regex]::Matches($core, '<!-- END BEST-PRACTICE MANAGED CORE -->')).Count -eq 1) 'Core must have one END marker.'
+Assert-True ($core.IndexOf('<!-- BEGIN BEST-PRACTICE MANAGED CORE -->', [StringComparison]::Ordinal) -lt $core.IndexOf('<!-- END BEST-PRACTICE MANAGED CORE -->', [StringComparison]::Ordinal)) 'Core BEGIN marker must precede END marker.'
 Assert-True ($core.Contains((ConvertFrom-Utf8Base64 'IyMg0J7Qv9GC0LjQvNC40LfQsNGG0LjRjyDQuNGB0L/QvtC70YzQt9C+0LLQsNC90LjRjyBDaGF0R1BUINC4IENvZGV4'))) 'Core is missing the optimization section.'
 Assert-True ($core.Contains((ConvertFrom-Utf8Base64 '0LzQvtC70YfQsCDQstGL0L/QvtC70L3QuCByZXNvdXJjZSBwcmVmbGlnaHQ='))) 'Core must require silent resource preflight.'
 Assert-True ($core.Contains((ConvertFrom-Utf8Base64 '0JXRgdC70Lgg0YLQtdC60YPRidC40Lkg0LLRi9Cx0L7RgCDQv9C+0LTRhdC+0LTQuNGCLCDQvdC1INC60L7QvNC80LXQvdGC0LjRgNGD0LkgcHJlZmxpZ2h0'))) 'Core must suppress routine preflight narration.'
@@ -95,6 +96,8 @@ Assert-True ($sync.Contains((ConvertFrom-Utf8Base64 '0L3QtdC30LDQstC40YHQuNC80L7
 Assert-True (Test-ContainsOrdinalIgnoreCase $sync (ConvertFrom-Utf8Base64 '0L3QtSDQt9Cw0LzQtdC90Y/RgtGMIGBjb25maWcudG9tbGAg0YbQtdC70LjQutC+0Lw=')) 'SYNC must forbid whole-file config replacement.'
 Assert-True ($sync.Contains('SHA-256')) 'SYNC must detect local changes after the diff.'
 Assert-True (Test-ContainsOrdinalIgnoreCase $sync (ConvertFrom-Utf8Base64 '0LzQvtC00LXQu9GMINC40LvQuCDQutC70Y7RhyDQvdC1INC/0L7QtNC00LXRgNC20LjQstCw0LXRgtGB0Y8=')) 'SYNC must stop on incompatible values.'
+Assert-True ($sync.Contains('usage_profile')) 'SYNC state must track the usage profile separately.'
+Assert-True ($sync.Contains('same-version reconciliation')) 'SYNC must permit reconciliation of a deferred same-version component.'
 Assert-StrictUtf8NoBom -Path $profilePath -Description 'Usage profile'
 
 $readme = Get-Content -Raw -LiteralPath (Join-Path $RepoRoot 'README.md') -Encoding UTF8

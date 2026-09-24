@@ -18,6 +18,8 @@
 - `memory/` — подробная справочная база, читаемая по релевантности.
 - `config/USAGE_PROFILE.toml` — канонический рекомендуемый профиль общих
   ключей; применяется только через отдельный diff и approval по `SYNC.md`.
+- `scripts/Integrate-UsageOptimization.ps1` — проверяемый preview/apply-путь
+  для managed-блока и шести allowlisted ключей с hash guard и backup.
 
 ## Что одинаково на всех установках
 
