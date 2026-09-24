@@ -97,4 +97,22 @@ Assert-True ($sync.Contains('SHA-256')) 'SYNC must detect local changes after th
 Assert-True (Test-ContainsOrdinalIgnoreCase $sync (ConvertFrom-Utf8Base64 '0LzQvtC00LXQu9GMINC40LvQuCDQutC70Y7RhyDQvdC1INC/0L7QtNC00LXRgNC20LjQstCw0LXRgtGB0Y8=')) 'SYNC must stop on incompatible values.'
 Assert-StrictUtf8NoBom -Path $profilePath -Description 'Usage profile'
 
+$readme = Get-Content -Raw -LiteralPath (Join-Path $RepoRoot 'README.md') -Encoding UTF8
+$version = Get-Content -Raw -LiteralPath (Join-Path $RepoRoot 'VERSION') -Encoding UTF8
+$changelog = Get-Content -Raw -LiteralPath (Join-Path $RepoRoot 'CHANGELOG.md') -Encoding UTF8
+Assert-True ($readme.Contains('memory/USAGE_OPTIMIZATION.md')) 'README must link the detailed policy.'
+Assert-True ($readme.Contains('config/USAGE_PROFILE.toml')) 'README must link the usage profile.'
+Assert-True ($version.Contains('Version: 2.3.0')) 'VERSION must be 2.3.0.'
+Assert-True ($version.Contains('Date: 2026-09-24')) 'VERSION must use the release date.'
+Assert-True ($changelog.Contains((ConvertFrom-Utf8Base64 'IyMgMi4zLjAg4oCUIDIwMjYtMDktMjQ='))) 'CHANGELOG must describe release 2.3.0.'
+foreach ($path in @(
+    (Join-Path $RepoRoot 'README.md'),
+    (Join-Path $RepoRoot 'CHANGELOG.md'),
+    (Join-Path $RepoRoot 'VERSION'),
+    (Join-Path $RepoRoot 'SYNC.md'),
+    (Join-Path $RepoRoot 'tests\UsageOptimizationPolicy.Tests.ps1')
+)) {
+    Assert-StrictUtf8NoBom -Path $path -Description 'Release text'
+}
+
 Write-Output 'PASS usage optimization policy contract'

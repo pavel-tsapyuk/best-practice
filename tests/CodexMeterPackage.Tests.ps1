@@ -138,8 +138,8 @@ $changelog = Get-Content -Raw -LiteralPath (Join-Path $RepoRoot 'CHANGELOG.md')
 Assert-True ($readme.Contains('packages/CodexMeter/INSTALL.md')) 'README does not link to the bundled CodexMeter package.'
 Assert-True ($applications.Contains('packages/CodexMeter')) 'PROJECT_APPLICATIONS does not use the bundled CodexMeter package.'
 Assert-True ($applications.Contains('CodexMeter 1.1.1')) 'PROJECT_APPLICATIONS does not identify the bundled CodexMeter version.'
-Assert-True ($bestPracticeVersion.Contains('Version: 2.2.1')) 'Best Practice VERSION was not raised to 2.2.1.'
-Assert-True ($bestPracticeVersion.Contains('Date: 2026-09-03')) 'Best Practice VERSION has the wrong release date.'
+Assert-True ($bestPracticeVersion.Contains('Version: 2.3.0')) 'Best Practice VERSION was not raised to 2.3.0.'
+Assert-True ($bestPracticeVersion.Contains('Date: 2026-09-24')) 'Best Practice VERSION has the wrong release date.'
 Assert-True ($changelog.Contains('## 2.2.1 — 2026-09-03')) 'CHANGELOG is missing the 2.2.1 release.'
 
 foreach ($document in @(
